@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0f172a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Habits" />
+<meta name="mobile-web-app-capable" content="yes" />
+<link rel="manifest" href="manifest.json" />
+<title>Atomic Habits Tracker</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+
+  html, body {
+    height:100%;
+    overscroll-behavior-y:none;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+  body {
+    background:#0f172a;
+    color:#e2e8f0;
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:calc(76px + env(safe-area-inset-bottom));
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  /* ===== APP HEADER ===== */
+  .app-header {
+    position:sticky; top:0; z-index:50;
+    background:rgba(15,23,42,.92);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid #1e293b;
+    padding:14px 18px 12px;
+    padding-top:calc(14px + env(safe-area-inset-top));
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .app-header h1 {
+    font-size:20px; font-weight:800;
+    background:linear-gradient(90deg,#38bdf8,#a78bfa);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    letter-spacing:-.3px;
+  }
+  .app-header .greet { font-size:12px; color:#94a3b8; margin-top:2px; }
+  .user-avatar { width:36px; height:36px; border-radius:50%; border:2px solid #38bdf8; cursor:pointer; }
+
+  /* ===== MAIN ===== */
+  main { padding:16px 16px 8px; max-width:600px; margin:0 auto; }
+  .view { display:none; animation:fade .25s ease; }
+  .view.active { display:block; }
+  @keyframes fade { from { opacity:0; transform:translateY(6px);} to {opacity:1;transform:none;} }
+
+  /* ===== LOGIN SCREEN ===== */
+  .login-box {
+    text-align:center; padding:40px 20px; background:#1e293b;
+    border-radius:20px; border:1px solid #334155; margin-top:40px;
+  }
+  .login-box h2 { font-size:22px; margin-bottom:10px; color:#f1f5f9; }
+  .login-box p { font-size:14px; color:#94a3b8; margin-bottom:24px; line-height:1.5; }
+  .google-btn {
+    background:#fff; color:#0f172a; display:flex; align-items:center;
+    justify-content:center; gap:10px; font-weight:700; border-radius:12px;
+    padding:14px; width:100%; border:none; cursor:pointer; font-size:15px;
+  }
+
+  /* ===== CARDS & ELEMENTS ===== */
+  .card { background:#1e293b; border:1px solid #334155; border-radius:16px; padding:18px; margin-bottom:14px; }
+  .card h2 { font-size:15px; margin-bottom:12px; color:#f1f5f9; font-weight:700; }
+  
+  .identity-badge {
+    display:block; padding:14px 16px; background:linear-gradient(135deg,#38bdf8,#a78bfa);
+    color:#0f172a; border-radius:14px; font-weight:700; font-size:14px; margin-bottom:14px;
+    line-height:1.4; box-shadow:0 6px 20px rgba(56,189,248,.25);
+  }
+
+  .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+  .stat { background:#1e293b; padding:14px 8px; border-radius:14px; text-align:center; border:1px solid #334155; }
+  .stat-num { font-size:22px; font-weight:800; background:linear-gradient(90deg,#38bdf8,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .stat-label { font-size:10px; color:#94a3b8; margin-top:2px; letter-spacing:.3px; }
+
+  .habit {
+    display:flex; align-items:flex-start; gap:12px; padding:14px; background:#0f172a;
+    border-radius:14px; margin-bottom:10px; border:1px solid #1e293b; transition:transform .15s, opacity .2s;
+  }
+  .habit.done { opacity:.55; }
+  .habit.done .habit-name { text-decoration:line-through; }
+
+  .checkbox {
+    width:44px; height:44px; min-width:44px; border-radius:12px; border:2px solid #475569;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.2s;
+    font-size:18px; font-weight:700; background:#1e293b;
+  }
+  .checkbox.checked { background:linear-gradient(135deg,#38bdf8,#a78bfa); border-color:transparent; color:#0f172a; }
+
+  .habit-info { flex:1; min-width:0; padding-top:2px; }
+  .habit-name { font-size:15px; font-weight:600; margin-bottom:5px; line-height:1.35; word-break:break-word; }
+  .habit-meta { font-size:11px; color:#94a3b8; line-height:1.5; }
+  .delete-btn { background:transparent; border:none; color:#64748b; font-size:18px; width:32px; height:32px; border-radius:8px; cursor:pointer; flex-shrink:0; }
+
+  input, textarea {
+    width:100%; padding:14px 16px; border-radius:12px; border:1.5px solid #334155;
+    background:#0f172a; color:#e2e8f0; font-size:16px; margin-bottom:10px; outline:none;
+  }
+  button {
+    padding:14px 22px; border-radius:12px; border:none; cursor:pointer;
+    background:linear-gradient(90deg,#38bdf8,#a78bfa); color:#0f172a; font-weight:800;
+    font-size:15px; width:100%; min-height:48px;
+  }
+
+  /* ===== BOTTOM NAV ===== */
+  .bottom-nav {
+    position:fixed; bottom:0; left:0; right:0; z-index:100; background:rgba(15,23,42,.96);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-top:1px solid #1e293b;
+    display:flex; justify-content:space-around; padding:8px 4px calc(8px + env(safe-area-inset-bottom));
+    max-width:600px; margin:0 auto;
+  }
+  .nav-item {
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+    padding:6px 4px; border-radius:12px; color:#64748b; font-size:10px; font-weight:600;
+    cursor:pointer; border:none; background:none; min-height:52px; justify-content:center;
+  }
+  .nav-item.active { color:#38bdf8; }
+
+  .toast {
+    position:fixed; bottom:calc(96px + env(safe-area-inset-bottom)); left:50%;
+    transform:translateX(-50%) translateY(120px); background:linear-gradient(90deg,#38bdf8,#a78bfa);
+    color:#0f172a; padding:12px 22px; border-radius:100px; font-weight:800; font-size:13px;
+    transition:.3s cubic-bezier(.2,.9,.3,1.2); z-index:200; box-shadow:0 8px 30px rgba(56,189,248,.4);
+  }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div>
+    <h1 id="header-title">Atomic Habits</h1>
+    <div class="greet" id="header-greet">Setiap tindakan = satu undi 🗳️</div>
+  </div>
+  <img id="user-photo" class="user-avatar" style="display:none;" title="Log keluar" onclick="logout()" />
+</header>
+
+<main>
+  <!-- LOGIN VIEW -->
+  <section class="view active" id="view-login">
+    <div class="login-box">
+      <h2>Selamat Datang 🚀</h2>
+      <p>Log masuk untuk menyegerakkan (sync) habit anda merentasi semua peranti secara automatik.</p>
+      <button class="google-btn" onclick="loginGoogle()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+        Log Masuk dengan Google
+      </button>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="view" id="view-dashboard">
+    <div id="identity-display"></div>
+    <div class="stats">
+      <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">HABIT</div></div>
+      <div class="stat"><div class="stat-num" id="stat-done">0</div><div class="stat-label">SELESAI</div></div>
+      <div class="stat"><div class="stat-num" id="stat-streak">0</div><div class="stat-label">STREAK</div></div>
+    </div>
+    <div class="card">
+      <h2>✅ Habit Baik</h2>
+      <div id="good-habits-list"></div>
+    </div>
+    <div class="card">
+      <h2>🚫 Habit Buruk</h2>
+      <div id="bad-habits-list"></div>
+    </div>
+  </section>
+
+  <!-- ADD HABIT -->
+  <section class="view" id="view-add">
+    <div class="card">
+      <h2>✅ Bina Habit Baik</h2>
+      <input id="gh-name" placeholder="Nama habit (cth: Baca buku)" />
+      <button onclick="addHabit(false)">💾 Simpan Habit Baik</button>
+    </div>
+    <div class="card">
+      <h2>🚫 Buang Habit Buruk</h2>
+      <input id="bh-name" placeholder="Nama habit buruk (cth: Scroll TikTok)" />
+      <button onclick="addHabit(true)">💾 Simpan Habit Buruk</button>
+    </div>
+  </section>
+
+  <!-- IDENTITY -->
+  <section class="view" id="view-identity">
+    <div class="card">
+      <h2>🎯 Identiti Anda</h2>
+      <input id="identity-input" placeholder="cth: Saya seorang yang sihat & aktif" />
+      <button onclick="saveIdentity()">💾 Simpan Identiti</button>
+    </div>
+  </section>
+
+  <!-- REFLECTION -->
+  <section class="view" id="view-reflection">
+    <div class="card">
+      <h2>🔍 Refleksi Mingguan</h2>
+      <textarea id="ref-text" rows="4" placeholder="Tulis refleksi perjalanan anda..."></textarea>
+      <button onclick="saveReflection()">💾 Simpan Refleksi</button>
+    </div>
+  </section>
+</main>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="main-nav" style="display:none;">
+  <button class="nav-item active" onclick="switchTab('dashboard', this)"><span style="font-size:18px;">📊</span>Utama</button>
+  <button class="nav-item" onclick="switchTab('add', this)"><span style="font-size:18px;">➕</span>Tambah</button>
+  <button class="nav-item" onclick="switchTab('identity', this)"><span style="font-size:18px;">🎯</span>Identiti</button>
+  <button class="nav-item" onclick="switchTab('reflection', this)"><span style="font-size:18px;">🔍</span>Refleksi</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE SDKs (v10 Modular via CDN) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // 1. MASUKKAN CONFIG FIREBASE ANDA DI SINI
+  const firebaseConfig = {
+    apiKey: "AIzaSy...",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:abcdef"
+  };
+
+  // Initialize
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  let currentUser = null;
+  let state = { identity: '', goodHabits: [], badHabits: [], completions: {}, badRelapses: [] };
+
+  // ============ AUTHENTICATION ============
+  window.loginGoogle = async () => {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (e) {
+      toast("Gagal log masuk: " + e.message);
+    }
+  };
+
+  window.logout = async () => {
+    if (confirm("Log keluar dari akaun?")) {
+      await signOut(auth);
+      location.reload();
+    }
+  };
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+      document.getElementById('user-photo').src = user.photoURL || '';
+      document.getElementById('user-photo').style.display = 'block';
+      document.getElementById('main-nav').style.display = 'flex';
+      
+      // Load user data in real-time from Firestore
+      listenToUserData(user.uid);
+      switchTab('dashboard', document.querySelectorAll('.nav-item')[0]);
+    } else {
+      currentUser = null;
+      document.getElementById('main-nav').style.display = 'none';
+      document.getElementById('user-photo').style.display = 'none';
+      showView('login');
+    }
+  });
+
+  // ============ FIRESTORE SYNC ============
+  function listenToUserData(uid) {
+    const userDocRef = doc(db, "users", uid);
+    onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        state = { ...state, ...docSnap.data() };
+      } else {
+        saveToFirestore(); // Create empty doc if new user
+      }
+      renderDashboard();
+    });
+  }
+
+  async function saveToFirestore() {
+    if (!currentUser) return;
+    try {
+      await setDoc(doc(db, "users", currentUser.uid), state, { merge: true });
+    } catch (e) {
+      console.error("Error saving data:", e);
+    }
+  }
+
+  // ============ APP LOGIC ============
+  function todayKey() { return new Date().toISOString().slice(0,10); }
+
+  window.addHabit = (isBad) => {
+    const inputId = isBad ? 'bh-name' : 'gh-name';
+    const name = document.getElementById(inputId).value.trim();
+    if (!name) return toast('Sila isi nama habit');
+
+    const item = { id: Date.now().toString(), name };
+    if (isBad) state.badHabits.push(item);
+    else state.goodHabits.push(item);
+
+    document.getElementById(inputId).value = '';
+    saveToFirestore();
+    toast('Habit ditambah ✓');
+  };
+
+  window.toggleHabit = (id, isBad) => {
+    const key = todayKey();
+    if (!state.completions) state.completions = {};
+    if (!state.completions[key]) state.completions[key] = {};
+
+    if (state.completions[key][id]) {
+      delete state.completions[key][id];
+    } else {
+      state.completions[key][id] = true;
+      toast('Hebat! Habit diselesaikan 🎉');
+    }
+    saveToFirestore();
+  };
+
+  window.deleteHabit = (id, isBad) => {
+    if (!confirm('Padam habit ini?')) return;
+    if (isBad) state.badHabits = state.badHabits.filter(h => h.id !== id);
+    else state.goodHabits = state.goodHabits.filter(h => h.id !== id);
+    saveToFirestore();
+  };
+
+  window.saveIdentity = () => {
+    const v = document.getElementById('identity-input').value.trim();
+    if (!v) return toast('Sila isi identiti');
+    state.identity = v;
+    saveToFirestore();
+    toast('Identiti disimpan ✓');
+  };
+
+  function renderDashboard() {
+    const idEl = document.getElementById('identity-display');
+    idEl.innerHTML = state.identity
+      ? `<div class="identity-badge"><span style="font-size:10px; opacity:.75; display:block;">IDENTITI ANDA</span>${state.identity}</div>`
+      : '';
+
+    const goodList = document.getElementById('good-habits-list');
+    const badList = document.getElementById('bad-habits-list');
+    const tKey = todayKey();
+
+    // Render Good
+    if (state.goodHabits.length === 0) {
+      goodList.innerHTML = '<div style="color:#64748b; font-size:13px;">Tiada habit baik lagi.</div>';
+    } else {
+      goodList.innerHTML = state.goodHabits.map(h => {
+        const checked = state.completions?.[tKey]?.[h.id];
+        return `
+          <div class="habit ${checked ? 'done' : ''}">
+            <div class="checkbox ${checked ? 'checked' : ''}" onclick="toggleHabit('${h.id}', false)">${checked ? '✓' : ''}</div>
+            <div class="habit-info">
+              <div class="habit-name">${h.name}</div>
+            </div>
+            <button class="delete-btn" onclick="deleteHabit('${h.id}', false)">🗑️</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render Bad
+    if (state.badHabits.length === 0) {
+      badList.innerHTML = '<div style="color:#64748b; font-size:13px;">Tiada habit buruk.</div>';
+    } else {
+      badList.innerHTML = state.badHabits.map(h => `
+        <div class="habit">
+          <div class="habit-info">
+            <div class="habit-name">${h.name}</div>
+          </div>
+          <button class="delete-btn" onclick="deleteHabit('${h.id}', true)">🗑️</button>
+        </div>
+      `).join('');
+    }
+
+    // Stats
+    document.getElementById('stat-total').textContent = state.goodHabits.length;
+    document.getElementById('stat-done').textContent = Object.keys(state.completions?.[tKey] || {}).length;
+  }
+
+  // UI Helpers
+  window.switchTab = (name, el) => {
+    showView(name);
+    document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
+    if (el) el.classList.add('active');
+    if (name === 'identity') document.getElementById('identity-input').value = state.identity || '';
+  };
+
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+</script>
+</body>
+</html>
